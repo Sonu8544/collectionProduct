@@ -1,0 +1,299 @@
+
+
+<section class="featured-collection" data-slider-enabled="{{ section.settings.enable_slider }}">
+  {% if section.settings.title != blank %}
+    <h2 class="featured-collection__title">{{ section.settings.title | escape }}</h2>
+  {% endif %}
+
+  {%- assign collection = collections[section.settings.collection] -%}
+
+  <div class="featured-collection__container">
+    <div class="featured-collection__grid{% if section.settings.enable_slider %} featured-collection__slider{% endif %}">
+      {% for product in collection.products limit: 12 %}
+        <div class="featured-collection-item">
+          <a href="{{ product.url | within: collection }}">
+            {% if product.featured_image != blank %}
+              <div class="featured-collection__image">
+                <img src="{{ product.featured_image | image_url: width: 500 }}" alt="{{ product.title | escape }}">
+              </div>
+            {% else %}
+              {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+            {% endif %}
+
+            <div class="product__info">
+              <h3 class="product__title">{{ product.title | escape }}</h3>
+              <span class="product__price{% if product.compare_at_price > product.price %} product__price--sale{% endif %}">
+                {% if product.compare_at_price > product.price %}
+                  {% if product.price_varies %}
+                    {%- assign sale_price = product.price | money -%}
+                    {{ 'products.product.on_sale_from_html' | t: price: sale_price }}
+                  {% else %}
+                    {{ 'products.product.on_sale' | t }}
+                    {{ product.price | money }}
+                  {% endif %}
+                {% else %}
+                  {% if product.price_varies %}
+                    {%- assign price = product.price | money -%}
+                    {{ 'products.product.from_text_html' | t: price: price }}
+                  {% else %}
+                    {{ product.price | money }}
+                  {% endif %}
+                {% endif %}
+              </span>
+            </div>
+          </a>
+        </div>
+      {% else %}
+        {% for i in (1..6) %}
+          <div class="featured-collection-item">
+            <a href="#">
+              {% capture current %}
+                {% cycle 1, 2, 3, 4, 5, 6 %}
+              {% endcapture %}
+              {{ 'product-' | append: current | placeholder_svg_tag: 'placeholder-svg placeholder-svg--small' }}
+              <div class="product__info">
+                <h3 class="product__title">{{ 'homepage.onboarding.product_title' | t }}</h3>
+                <span class="product__price">{{ 1999 | money }}</span>
+              </div>
+            </a>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
+  <div class="sliderButtons">
+    <div class="slider-buttons">
+      <button id="textcenter" class="slider-button slider-button--prev" aria-label="Previous slide">Prev</button>
+      <button id="textcenter" class="slider-button slider-button--next" aria-label="Next slide">Next</button>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const container = document.querySelector('.featured-collection');
+    const slider = container.querySelector('.featured-collection__slider');
+    const prevButton = container.querySelector('.slider-button--prev');
+    const nextButton = container.querySelector('.slider-button--next');
+    const sliderEnabled = container.dataset.sliderEnabled === 'true';
+
+    if (sliderEnabled && slider) {
+      let currentSlide = 0;
+      const slides = slider.children;
+      const totalSlides = slides.length;
+
+      function updateSliderView() {
+        const isMobile = window.innerWidth <= 768;
+        const slidesToShow = isMobile ? 1 : 4;
+        const slideWidth = 100 / slidesToShow;
+
+        slider.style.transform = `translateX(-${currentSlide * slideWidth}%)`;
+
+        for (let i = 0; i < totalSlides; i++) {
+          slides[i].style.flex = `0 0 ${slideWidth}%`;
+          slides[i].style.maxWidth = `${slideWidth}%`;
+        }
+
+        prevButton.disabled = currentSlide === 0;
+        nextButton.disabled = currentSlide + slidesToShow >= totalSlides;
+      }
+
+      function nextSlide() {
+        const isMobile = window.innerWidth <= 768;
+        const slidesToShow = isMobile ? 1 : 4;
+        if (currentSlide + slidesToShow < totalSlides) {
+          currentSlide++;
+          updateSliderView();
+        }
+      }
+
+      function prevSlide() {
+        if (currentSlide > 0) {
+          currentSlide--;
+          updateSliderView();
+        }
+      }
+
+      prevButton.addEventListener('click', prevSlide);
+      nextButton.addEventListener('click', nextSlide);
+      window.addEventListener('resize', updateSliderView);
+
+      updateSliderView();
+    } else {
+      prevButton.style.display = 'none';
+      nextButton.style.display = 'none';
+    }
+  });
+</script>
+
+{% schema %}
+{
+  "name": "Featured Collection",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Heading",
+      "default": "Featured collection"
+    },
+    {
+      "id": "collection",
+      "type": "collection",
+      "label": "Collection"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_slider",
+      "label": "Enable slider",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "Featured collection",
+      "category": "Collection"
+    }
+  ]
+}
+{% endschema %}
+
+<style>
+  .sliderButtons {
+    display: flex;
+    justify-content: center;
+  }
+  .featured-collection {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .featured-collection__title {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .featured-collection__container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .featured-collection__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  .featured-collection__slider {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2rem;
+    transition: transform 0.3s ease;
+  }
+
+  .featured-collection__slider .featured-collection-item {
+    flex: 0 0 calc(25% - 1.5rem);
+    max-width: calc(25% - 1.5rem);
+  }
+
+  .featured-collection-item {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+  }
+
+  .featured-collection-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .featured-collection__image {
+    position: relative;
+    padding-bottom: 100%;
+    overflow: hidden;
+  }
+
+  .featured-collection__image img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .product__info {
+    padding: 1rem;
+  }
+
+  .product__title {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .product__price {
+    font-weight: bold;
+    color: #4a4a4a;
+  }
+
+  .product__price--sale {
+    color: blue;
+  }
+
+  .slider-buttons {
+    display: flex;
+    width: 150px;
+    justify-content: center;
+    margin-top: 2rem;
+    gap: 1rem;
+  }
+
+  .slider-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  #textcenter {
+    text-align: center;
+    padding: 8px 10px;
+  }
+
+  .slider-button:hover {
+    background-color: #939090;
+  }
+
+  .slider-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    .featured-collection__grid {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .featured-collection__slider .featured-collection-item {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .featured-collection__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
